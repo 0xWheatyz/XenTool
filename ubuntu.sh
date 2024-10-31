@@ -59,7 +59,7 @@ delete_extra_users () {
   do
     if _contains_element "$system_user" "${clean_file_username_list[@]}"; then true  
     else 
-      _print "r" "UNAUTHORIZED > $system_user"
+      _print "r" "UNAUTHORIZED USER > $system_user"
       read -p "Remove user? (Y/n) " -n 1 ans
       echo
       if [[ $ans == n ]]; then true
@@ -82,12 +82,12 @@ delete_bad_tools () {
   do
     if _contains_element "$app" "${nono_app_list}"
     then
-      _print "r" "$app"
+      _print "r" "MALICIOUS APP > $app"
       read -p "Remove app? (Y/n) " -n 1 ans
       echo ""
       if [[ $ans == n ]]; then true
       else
-        sudo -S apt remove "$app*"
+        sudo -S apt remove "$app*" &> /dev/null
       fi 
     fi 
   done
@@ -105,14 +105,14 @@ disable_services () {
     if [ $service_status == "inactive" ]; then true
     else
       # If service is running, warn user
-      _print "y" "$service"
+      _print "y" "DANGEROUS SERVICE > $service"
       # prompt user to disable and stop service
       read -p "Disable service? (Y/n) " -n 1 ans
       echo ""
       if [[ $ans == n ]]; then true
       else
-        sudo -S systemctl stop $service
-        sudo -S systemctl disable $service
+        sudo -S systemctl -q stop $service
+        sudo -S systemctl -q disable $service
       fi
     fi
   done
