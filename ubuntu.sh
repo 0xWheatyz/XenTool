@@ -87,7 +87,7 @@ delete_bad_tools () {
       echo ""
       if [[ $ans == n ]]; then true
       else
-        sudo -S apt remove "$app*" &> /dev/null
+        sudo -S apt remove "$app*" -y &> /dev/null
       fi 
     fi 
   done
