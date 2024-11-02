@@ -203,9 +203,8 @@ set_password_complexity () {
 }
 
 # Main function
-#delete_extra_users $1
-#delete_bad_tools
-#disable_services
-#set_password_complexity
-
+delete_extra_users $1
+delete_bad_tools
+disable_services
+set_password_complexity
 remove_unauthorized_admin $1
