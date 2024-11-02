@@ -16,10 +16,18 @@ Super duper simple
 git clone https://github.com/0xWheatyz/XenTool.git
 cd XenTool
 chmod +x ubuntu.sh
-./ubuntu.sh
+./ubuntu.sh users.txt
 ```
 or all as one,
-`git clone https://github.com/0xWheatyz/XenTool.git && cd XenTool &&chmod +x ubuntu.sh && ./ubuntu.sh`
+`git clone https://github.com/0xWheatyz/XenTool.git && cd XenTool &&chmod +x ubuntu.sh && ./ubuntu.sh users.txt`
+`users.txt` is a text file containing authorized user and their superuser status.
+
+#### Example users.txt file
+```
+root; sudo
+0xWheatyz;
+```
+In this example root is the only account that is authorized to use sudo commands.
 
 
 ### Notes

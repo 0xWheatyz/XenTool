@@ -51,7 +51,8 @@ delete_extra_users () {
   # Loop through users and assign to list
   for user in $users 
   do 
-    clean_file_username_list+=($user)
+    username=$( echo $user | cut -d; -f1 )
+    clean_file_username_list+=($username)
   done
 
   ### COMPARE LISTS LOOKING FOR UNAUTHORIZED USERS ###
@@ -69,6 +70,64 @@ delete_extra_users () {
     fi
   done
   _print "g" "Completed user checks"
+}
+
+# Remove sudo permission from users who are not authorized
+remove_unauthorized_admin () {
+  ### GET CLEAN LIST OF USERS FROM TXT FILE ###
+  proper_users_raw=$( cat $1 | grep "sudo" | cut -d";" -f1 )
+  proper_users=()
+  for user in ${proper_users_raw}
+  do
+    proper_users+=($user)
+  done
+
+  ### REMOVE UNAUTHORIZED SUPERUSERS FROM WHEEL ###
+  # Returns a list of users in the wheel group
+  wheel_group_users_raw=$( getent group wheel | cut -d: -f4 | tr "," "\n" )
+  wheel_group_users=()
+  for user in ${wheel_group_users_raw}
+  do 
+    wheel_group_users+=($user)
+  done
+
+  for user in ${wheel_group_users[@]}
+  do
+    if _contains_element "$user" "${proper_users[@]}"; then true
+    else
+      _print "r" "UNAUTHORIZED SUPERUSER > $user (reason: user in wheel group)"
+      read -p "Remove user? (Y/n) " -n 1 ans
+      echo ""
+      if [[ $ans == n ]]; then true
+      else
+        sudo -S userdel $user
+      fi
+    fi
+  done
+
+  ### REMOVE UNAUTHORIZED SUPERUSERS FROM /etc/sudoers ###
+  # Check /etc/sudoers for users between lines
+  sudoers_users_raw=$( sed -n '/## User privilege specification/{:a; n; /## Uncomment to allow members of group wheel to execute any command/!{p; ba}}' /etc/sudoers | grep -v "##" | cut -d" " -f1 )
+  sudoers_users=()
+  for user in ${sudoers_users_raw}
+  do
+    sudoers_users+=($user)
+  done 
+  
+  for user in ${sudoers_users_raw}
+  do 
+    if _contains_element "$user" "${proper_users[@]}"; then true
+    else
+      _print "r" "UNAUTHORIZED SUPERUSER > $user (reason: user in /etc/sudoers)"
+      read -p "Remove user? (Y/n) " -n 1 ans
+      echo ""
+      if [[ $ans == n ]]; then true
+      else
+        #Use SED to match lines starting with $user, them comment out those lines
+        sudo sed -i -e "/$user/s/^/#/" /etc/sudoers
+      fi
+    fi
+  done
 }
 
 # Delete bad tools defined in nono_app_list
@@ -144,7 +203,9 @@ set_password_complexity () {
 }
 
 # Main function
-delete_extra_users $1
-delete_bad_tools
-disable_services
-set_password_complexity
+#delete_extra_users $1
+#delete_bad_tools
+#disable_services
+#set_password_complexity
+
+remove_unauthorized_admin $1
