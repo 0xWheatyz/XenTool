@@ -169,7 +169,7 @@ delete_bad_tools () {
 
 disable_services () {
   # List of bad services
-  bad_services=("nginx" "apache" "apache2" "sshd")
+  bad_services=("telnet" "ftp" "tftp" "rexec" "rlogin" "rsh" "xinetd" "apache2" "httpd" "nginx" "mysql" "mariadb" "postgresql" "postfix" "sendmail" "exim4" "dovecot" "courier" "pop3" "imap" "samba" "nfs-kernel-server" "rsync" "cifs" "rpcbind" "avahi-daemon" "cups" "bluetooth" "ssdp" "snmp" "dhcp" "telnetd")
   
   for service in ${bad_services[@]}
   do
