@@ -1,6 +1,10 @@
 #!/bin/bash
 set +e
 
+## Global log variable
+# Every destructive function appends to this list upon completing one action
+log=()
+
 ## Helper function to check that string is in array
 # Usage: _contains_element "string" "${array[@]}"
 # Returns: 0 if exists, 1 if not found
@@ -31,6 +35,11 @@ _print () {
     esac
 }
 
+## Write log to text file
+_write_log () {
+  echo $log | tee script.log
+}
+
 # Get all users with a login shell
 delete_extra_users () {
   ### GET SYSTEM USERS ###
@@ -51,7 +60,7 @@ delete_extra_users () {
   # Loop through users and assign to list
   for user in $users 
   do 
-    username=$( echo $user | cut -d; -f1 )
+    username=$( echo $user | cut -d";" -f1 )
     clean_file_username_list+=($username)
   done
 
@@ -65,6 +74,7 @@ delete_extra_users () {
       echo
       if [[ $ans == n ]]; then true
       else
+        log+=("Removed user => $user")
         sudo -S userdel $system_user
       fi
     fi
@@ -84,7 +94,7 @@ remove_unauthorized_admin () {
 
   ### REMOVE UNAUTHORIZED SUPERUSERS FROM WHEEL ###
   # Returns a list of users in the wheel group
-  wheel_group_users_raw=$( getent group wheel | cut -d: -f4 | tr "," "\n" )
+  wheel_group_users_raw=$( getent group wheel | cut -d":" -f4 | tr "," "\n" )
   wheel_group_users=()
   for user in ${wheel_group_users_raw}
   do 
@@ -100,6 +110,7 @@ remove_unauthorized_admin () {
       echo ""
       if [[ $ans == n ]]; then true
       else
+        log+=("Removed user => $user (wheel group)")
         sudo -S userdel $user
       fi
     fi
@@ -107,7 +118,7 @@ remove_unauthorized_admin () {
 
   ### REMOVE UNAUTHORIZED SUPERUSERS FROM /etc/sudoers ###
   # Check /etc/sudoers for users between lines
-  sudoers_users_raw=$( sed -n '/## User privilege specification/{:a; n; /## Uncomment to allow members of group wheel to execute any command/!{p; ba}}' /etc/sudoers | grep -v "##" | cut -d" " -f1 )
+  sudoers_users_raw=$( sed -n '/## User privilege specification/{:a; n; /## Uncomment to allow members of group wheel to execute any command/!{p; ba}}' /etc/sudoers | grep -v "##" | cut -d" " -f1 | grep -v "#")
   sudoers_users=()
   for user in ${sudoers_users_raw}
   do
@@ -123,6 +134,7 @@ remove_unauthorized_admin () {
       echo ""
       if [[ $ans == n ]]; then true
       else
+        log+=("Removed user => $user (sudoers file)")
         #Use SED to match lines starting with $user, them comment out those lines
         sudo sed -i -e "/$user/s/^/#/" /etc/sudoers
       fi
@@ -136,7 +148,8 @@ delete_bad_tools () {
   # List of installed apps
   installed_app_list=$( dpkg --get-selections | grep -v deinstall | cut -f1 )
   # List of bad apps
-  nono_app_list=("nmap" "wireshark" "thunderbird")
+  nono_app_list=("nmap" "tcpdump" "wireshark" "hping3" "netcat" "nc" "telnet" "socat" "nikto" "whois" "rsh-client" "rlogin" "rexec" "xinetd" "vnc" "rdesktop" "ftp" "vsftpd" "tftp" "rdesktop" "tightvncserver" "perl" "ruby" "python" "php" "wget" "curl" "lynx" "elinks" "sshpass" "john" "hydra" "sqlmap")
+
   for app in ${installed_app_list[@]}
   do
     if _contains_element "$app" "${nono_app_list}"
@@ -146,6 +159,7 @@ delete_bad_tools () {
       echo ""
       if [[ $ans == n ]]; then true
       else
+        log+=("Removed app => $app")
         sudo -S apt remove "$app*" -y &> /dev/null
       fi 
     fi 
@@ -170,6 +184,7 @@ disable_services () {
       echo ""
       if [[ $ans == n ]]; then true
       else
+        log+=("Disabled service => $service")
         sudo -S systemctl -q stop $service
         sudo -S systemctl -q disable $service
       fi
@@ -199,6 +214,7 @@ set_password_complexity () {
   # /etc/login.defs
   password_enforcement_raw_contents="# /etc/login.defs - configuration for login and user account management\n# PASS_MAX_DAYS: maximum number of days a password is valid\nPASS_MAX_DAYS   90\n# PASS_MIN_DAYS: minimum number of days between password changes\nPASS_MIN_DAYS   7\n# PASS_MIN_LEN: minimum acceptable password length\nPASS_MIN_LEN    12\n# PASS_WARN_AGE: number of days before password expires that the user is warned\nPASS_WARN_AGE   14\n# ENCRYPT_METHOD: encryption method to use for password hashing\nENCRYPT_METHOD  SHA512\n# Default umask for users\nUMASK           077\n# Allow users to use shadow passwords\nSHA_CRYPT       yes"
   echo "$password_enforcement_raw_contents" | tee login.defs &> /dev/null
+  cp /etc/login.defs login.defs.bak
 
 }
 
@@ -208,3 +224,5 @@ delete_bad_tools
 disable_services
 set_password_complexity
 remove_unauthorized_admin $1
+_write_log
+port_viewer
