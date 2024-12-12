@@ -163,3 +163,107 @@ Disable-Services
 Check-OpenPorts
 Set-PasswordComplexity
 Write-LogFile
+
+
+# Windows Security Hardening Script
+# This script implements multiple security best practices for Windows systems.
+# Run with administrative privileges.
+
+# Log File Initialization
+$LogFile = "C:\security_hardening.log"
+Start-Transcript -Path $LogFile -Append
+
+Write-Output "Starting Windows Security Hardening Script..."
+
+# Function to log actions
+Function Log-Action {
+    param ([string]$Message)
+    Write-Output $Message | Out-File -FilePath $LogFile -Append
+}
+
+# 1. Enable Windows Firewall and Configure Rules
+Log-Action "Enabling Windows Firewall..."
+Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True
+Log-Action "Windows Firewall enabled."
+
+# Example Rule: Allow RDP from a specific IP
+$AllowedIP = "192.168.1.100"
+New-NetFirewallRule -DisplayName "Allow RDP" -Direction Inbound -Protocol TCP -LocalPort 3389 -Action Allow -RemoteAddress $AllowedIP
+Log-Action "Configured RDP rule for IP $AllowedIP."
+
+# 2. Enable BitLocker for Disk Encryption
+Log-Action "Enabling BitLocker on C:\ drive..."
+Enable-BitLocker -MountPoint "C:" -EncryptionMethod XtsAes256 -UsedSpaceOnlyEncryption -TpmProtector
+Log-Action "BitLocker enabled."
+
+# 3. Regularly Apply Windows Updates
+Log-Action "Installing Windows Updates..."
+Install-Module -Name PSWindowsUpdate -Force -Scope CurrentUser
+Import-Module PSWindowsUpdate
+Install-WindowsUpdate -AcceptAll -AutoReboot
+Log-Action "Windows Updates installed."
+
+# 4. Restrict Remote Desktop Protocol (RDP) Access
+Log-Action "Disabling RDP..."
+Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -Value 1
+Log-Action "RDP disabled."
+
+# 5. Audit and Monitor Event Logs
+Log-Action "Enabling audit policies..."
+AuditPol.exe /set /category:* /success:enable /failure:enable
+Log-Action "Audit policies enabled."
+
+# 6. Disable Unused Network Protocols
+Log-Action "Disabling SMBv1..."
+Set-SmbServerConfiguration -EnableSMB1Protocol $false
+Log-Action "SMBv1 disabled."
+
+# 7. Implement Local Security Policies
+Log-Action "Configuring local security policies..."
+secedit /configure /cfg "C:\Windows\Security\Templates\SecTemplate.inf" /db SecDB.sdb
+Log-Action "Local security policies configured."
+
+# 8. Remove Legacy Applications and Features
+Log-Action "Removing Internet Explorer..."
+Disable-WindowsOptionalFeature -FeatureName Internet-Explorer-Optional-amd64 -Online
+Log-Action "Internet Explorer removed."
+
+# 9. Enable Controlled Folder Access
+Log-Action "Enabling Controlled Folder Access..."
+Set-MpPreference -EnableControlledFolderAccess Enabled
+Log-Action "Controlled Folder Access enabled."
+
+# 10. Harden PowerShell
+Log-Action "Configuring PowerShell execution policies..."
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope LocalMachine
+Set-ItemProperty -Path "HKLM:\Software\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging" -Name "EnableScriptBlockLogging" -Value 1
+Log-Action "PowerShell hardened."
+
+# 11. Use AppLocker or Windows Defender Application Control (WDAC)
+Log-Action "Configuring AppLocker policies..."
+Set-AppLockerPolicy -PolicyType Enforced -XMLPolicy "C:\Path\To\AppLockerPolicy.xml"
+Log-Action "AppLocker policies configured."
+
+# 12. Secure Administrator Accounts
+Log-Action "Renaming default Administrator account..."
+Rename-LocalUser -Name "Administrator" -NewName "SecureAdmin"
+Log-Action "Administrator account renamed."
+
+# 13. Enable Enhanced Security in Windows Defender
+Log-Action "Enabling enhanced security features in Windows Defender..."
+Set-MpPreference -EnableNetworkProtection Enabled
+Log-Action "Windows Defender enhanced security features enabled."
+
+# 14. Disable USB Ports (if not required)
+Log-Action "Disabling USB ports..."
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\USBSTOR" -Name "Start" -Value 4
+Log-Action "USB ports disabled."
+
+# 15. Backup Critical Data
+Log-Action "Creating a backup..."
+wbadmin start backup -backupTarget:D: -include:C: -allCritical -quiet
+Log-Action "Backup created."
+
+Write-Output "Security Hardening Script Completed."
+Stop-Transcript
+
