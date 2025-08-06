@@ -5,3 +5,11 @@ According to AFA *check these against script*
   * Min remeber passwords is 5
 - [ ] Use preconfigured pam configs in `/usr/share/pam-configs`
 - [ ] Enable ufw
+- [ ] Remove programs
+  * Squid
+  * Xprobe
+  * Doona
+  * Ngnix
+  * Openvpn
+- [ ] killed python backdoor
+- [ ] minlen = 10 in pam.d/common-password
