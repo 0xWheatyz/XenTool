@@ -4,8 +4,8 @@ According to AFA *check these against script*
   * Min length is 10
   * Min remeber passwords is 5
 - [ ] Use preconfigured pam configs in `/usr/share/pam-configs`
-- [ ] Enable ufw
-- [ ] Remove programs
+- [x] Enable ufw
+- [x] Remove programs
   * Squid
   * Xprobe
   * Doona
@@ -13,3 +13,4 @@ According to AFA *check these against script*
   * Openvpn
 - [ ] killed python backdoor
 - [ ] minlen = 10 in pam.d/common-password
+- [x] Run updates

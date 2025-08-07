@@ -148,7 +148,7 @@ delete_bad_tools () {
   # List of installed apps
   installed_app_list=$( dpkg --get-selections | grep -v deinstall | cut -f1 )
   # List of bad apps
-  nono_app_list=("nmap" "tcpdump" "wireshark" "hping3" "netcat" "nc" "telnet" "socat" "nikto" "whois" "rsh-client" "rlogin" "rexec" "xinetd" "vnc" "rdesktop" "ftp" "vsftpd" "tftp" "rdesktop" "tightvncserver" "perl" "ruby" "python" "php" "wget" "curl" "lynx" "elinks" "sshpass" "john" "hydra" "sqlmap")
+  nono_app_list=("nmap" "tcpdump" "wireshark" "hping3" "netcat" "nc" "telnet" "socat" "nikto" "whois" "rsh-client" "rlogin" "rexec" "xinetd" "vnc" "rdesktop" "ftp" "vsftpd" "tftp" "rdesktop" "tightvncserver" "perl" "ruby" "python" "php" "wget" "curl" "lynx" "elinks" "sshpass" "john" "hydra" "sqlmap" "squid" "xprobe" "Doona" "nginx" "openvpn")
 
   for app in ${installed_app_list[@]}
   do
@@ -169,7 +169,7 @@ delete_bad_tools () {
 
 disable_services () {
   # List of bad services
-  bad_services=("telnet" "ftp" "tftp" "rexec" "rlogin" "rsh" "xinetd" "apache2" "httpd" "nginx" "mysql" "mariadb" "postgresql" "postfix" "sendmail" "exim4" "dovecot" "courier" "pop3" "imap" "samba" "nfs-kernel-server" "rsync" "cifs" "rpcbind" "avahi-daemon" "cups" "bluetooth" "ssdp" "snmp" "dhcp" "telnetd")
+  bad_services=("telnet" "ftp" "tftp" "vsftpd" "rexec" "rlogin" "rsh" "xinetd" "apache2" "httpd" "nginx" "mysql" "mariadb" "postgresql" "postfix" "sendmail" "exim4" "dovecot" "courier" "pop3" "imap" "samba" "nfs-kernel-server" "rsync" "cifs" "rpcbind" "avahi-daemon" "cups" "bluetooth" "ssdp" "snmp" "dhcp" "telnetd" "squid")
   
   for service in ${bad_services[@]}
   do
@@ -196,7 +196,7 @@ disable_services () {
 
 # Check open ports
 port_viewer () {
-  bad_ports=(22 23 25 53 80 443 3306 5432 6379 5900 8080 2049 135 445 3389)
+  bad_ports=(21 22 23 25 53 80 443 3306 5432 6379 5900 8080 2049 135 445 3389)
 
   for port in "${bad_ports[@]}"
   do 
@@ -218,6 +218,26 @@ set_password_complexity () {
 
 }
 
+enable_firewall () {
+  if command -v ufw &> /dev/null; then
+    "sudo ufw enable"
+  else
+    _print "r" "Failed to enable the firewall, ufw is not installed"
+}
+
+# Finds the correct package manager and run updates
+run_updates () {
+  if command -v apt-get &> /dev/null; then
+    sudo apt update && sudo apt upgrade &> /dev/null &
+  elif command -v dnf &> /dev/null; then
+    sudo dnf check-update && sudo dnf upgrade
+  elif command -v yum &> /dev/null; then
+    sudo yum upgrade
+  else
+    _print "r" "Failed to find a package manager and run updates" 
+  fi
+}
+
 # Main function
 delete_extra_users $1
 delete_bad_tools
@@ -226,3 +246,4 @@ set_password_complexity
 remove_unauthorized_admin $1
 _write_log
 port_viewer
+run_updates
