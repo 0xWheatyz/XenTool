@@ -220,7 +220,7 @@ set_password_complexity () {
 
 enable_firewall () {
   if command -v ufw &> /dev/null; then
-    sudo ufw enable
+    "sudo ufw enable"
   else
     _print "r" "Failed to enable the firewall, ufw is not installed"
   fi
