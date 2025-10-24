@@ -213,17 +213,84 @@ set_password_complexity () {
   # Copy password file from somewhere...
   # /etc/login.defs
   password_enforcement_raw_contents="# /etc/login.defs - configuration for login and user account management\n# PASS_MAX_DAYS: maximum number of days a password is valid\nPASS_MAX_DAYS   90\n# PASS_MIN_DAYS: minimum number of days between password changes\nPASS_MIN_DAYS   7\n# PASS_MIN_LEN: minimum acceptable password length\nPASS_MIN_LEN    12\n# PASS_WARN_AGE: number of days before password expires that the user is warned\nPASS_WARN_AGE   14\n# ENCRYPT_METHOD: encryption method to use for password hashing\nENCRYPT_METHOD  SHA512\n# Default umask for users\nUMASK           077\n# Allow users to use shadow passwords\nSHA_CRYPT       yes"
-  echo "$password_enforcement_raw_contents" | tee login.defs &> /dev/null
   cp /etc/login.defs login.defs.bak
+  echo "$password_enforcement_raw_contents" | tee login.defs &> /dev/null
+}
 
+update_all_user_passwords () {
+	# Hash = Cyb3rP@tri0t18
+	hash='$6$.z7SjTXCuV.jcxp/$J80m2lGxxn6h6gKwE8aroWG10q4xPtmg7LGH2RORrlctT8s8Ma4jiwfSUi.Ox22YAKCAC7ii8tWkaDgzKXBQm/'
+	users=$( cat $1 | cut -d";" -f1 )
+	for user in "${users[@]}"
+	do
+		sudo usermod -p "$hash" "$user"
+	done
 }
 
 enable_firewall () {
-  if command -v ufw &> /dev/null; then
-    "sudo ufw enable"
-  else
-    _print "r" "Failed to enable the firewall, ufw is not installed"
+  # Install UFW if missing
+  if ! command -v ufw &>/dev/null; then
+    _print y "UFW is not installed."
+    read -rp "Do you want to install UFW now? [Y/n]: " ans
+    if [[ -z "$ans" || "$ans" =~ ^[Yy]$ ]]; then
+      sudo apt update && sudo apt install -y ufw
+      _print g "UFW installed successfully."
+    else
+      _print y "Cannot manage firewall without UFW. Exiting."
+      return 1
+    fi
   fi
+
+  # Check status
+  ufw_status=$(sudo ufw status | head -n1 | awk '{print $2}')
+  if [[ "$ufw_status" == "inactive" ]]; then
+    _print y "UFW is currently inactive."
+    read -rp "Do you want to enable UFW now? [Y/n]: " ans
+    if [[ -z "$ans" || "$ans" =~ ^[Yy]$ ]]; then
+        sudo ufw enable
+        _print g "UFW is now active."
+    else
+        _print y "Warning: UFW remains inactive. Managing ports is less secure."
+    fi
+  elif [[ "$ufw_status" == "active" ]]; then
+    _print g "UFW is active."
+  else
+    _print y "Could not determine UFW status."
+    return 1
+  fi
+
+
+  # Get all allowed ports (IPv4 only) and remove duplicates
+  mapfile -t open_ports < <(
+    sudo ufw status verbose 2>/dev/null |
+    grep -E 'ALLOW' |
+    grep -vE 'To|--|Status:' |
+    awk '{print $1}' | sort -u
+  )
+
+  if (( ${#open_ports[@]} == 0 )); then
+    _print g "No open ports detected in UFW rules."
+    return 0
+  fi
+
+  # Show open ports
+  _print r "The following ports are currently open:"
+  for port in "${open_ports[@]}"; do
+    _print y "$port"
+  done
+
+  # Delete each port (ask user, default YES)
+  for port in "${open_ports[@]}"; do
+    read -rp "Do you want to delete the rule for $port? [Y/n]: " ans
+    if [[ -z "$ans" || "$ans" =~ ^[Yy]$ ]]; then
+      # Delete both IPv4 and IPv6 rules automatically
+      sudo ufw --force delete allow "$port"
+      _print g "Deleted $port from UFW rules."
+    else
+      _print y "Kept $port in UFW rules."
+    fi
+  done
+  _print g "UFW port management complete."
 }
 
 # Finds the correct package manager and run updates
@@ -244,6 +311,7 @@ delete_extra_users $1
 delete_bad_tools
 disable_services
 set_password_complexity
+update_all_user_passwords $1
 remove_unauthorized_admin $1
 _write_log
 port_viewer
