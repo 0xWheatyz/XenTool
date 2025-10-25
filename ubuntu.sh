@@ -123,7 +123,7 @@ remove_unauthorized_admin () {
 
   ### REMOVE UNAUTHORIZED SUPERUSERS FROM /etc/sudoers ###
   # Check /etc/sudoers for users between lines
-  sudoers_users_raw=$( sed -n '/## User privilege specification/{:a; n; /## Uncomment to allow members of group wheel to execute any command/!{p; ba}}' /etc/sudoers | grep -v "##" | cut -d" " -f1 | grep -v "#")
+  sudoers_users_raw=$( sudo sed -n '/## User privilege specification/{:a; n; /## Uncomment to allow members of group wheel to execute any command/!{p; ba}}' /etc/sudoers | grep -v "##" | cut -d" " -f1 | grep -v "#")
   sudoers_users=()
   for user in ${sudoers_users_raw}
   do
@@ -213,11 +213,46 @@ port_viewer () {
 
 # Update password complexity
 set_password_complexity () {
-  # Copy password file from somewhere...
-  # /etc/login.defs
-  password_enforcement_raw_contents="# /etc/login.defs - configuration for login and user account management\n# PASS_MAX_DAYS: maximum number of days a password is valid\nPASS_MAX_DAYS   90\n# PASS_MIN_DAYS: minimum number of days between password changes\nPASS_MIN_DAYS   7\n# PASS_MIN_LEN: minimum acceptable password length\nPASS_MIN_LEN    12\n# PASS_WARN_AGE: number of days before password expires that the user is warned\nPASS_WARN_AGE   14\n# ENCRYPT_METHOD: encryption method to use for password hashing\nENCRYPT_METHOD  SHA512\n# Default umask for users\nUMASK           077\n# Allow users to use shadow passwords\nSHA_CRYPT       yes"
-  cp /etc/login.defs login.defs.bak
-  echo "$password_enforcement_raw_contents" | tee login.defs &> /dev/null
+  local pam_file="/etc/pam.d/common-password"
+  local conf_file="/etc/security/pwquality.conf"
+  # Ensure pam_pwquality.so is referenced correctly in PAM
+  if ! grep -q "pam_pwquality.so" "$pam_file"; then
+    sudo sed -i '/^password\s\+requisite\s\+pam_deny.so/i password    requisite     pam_pwquality.so retry=3' "$pam_file"
+  else
+    _print "y" "pam_pwquality.so already present in PAM configuration."
+  fi
+  # Add password history enforcement
+  if ! grep -q "pam_unix.so.*remember=" "$pam_file"; then
+    sudo sed -i "/pam_pwquality.so/a password    [success=1 default=ignore]   pam_unix.so obscure sha512 remember=5" "$pam_file"
+  else
+    _print "y" "Password history enforcement already configured."
+  fi
+
+  # Configure /etc/security/pwquality.conf
+  sudo tee "$conf_file" >/dev/null <<'EOF'
+  # Password quality configuration
+
+# Minimum length of a new password
+minlen = 10
+
+# At least one upper, lower, digit, and special character
+minclass = 4
+
+# Maximum sequence of the same character
+maxrepeat = 2
+
+# Reject passwords containing the username
+usercheck = 1
+
+# Prevent use of old/common passwords
+dictcheck = 1
+
+# Reject simple patterns like 1234, qwerty, etc.
+gecoscheck = 1
+
+# Enforce retry attempts
+retry = 3
+EOF
 }
 
 # Updates all users passwords to meet complexity requirements
@@ -420,8 +455,21 @@ list_cronjobs() {
 
 # Finds the correct package manager and run updates
 run_updates () {
+  echo "Press any key to stop updates"
+  for i in 3 2 1; do
+    # Print the countdown number
+    echo "$i"
+    
+    # Wait 1 second, but allow interruption
+    read -t 1 -n 1 key
+    if [ $? -eq 0 ]; then
+      echo "Countdown stopped by user!"
+      return 0
+    fi
+  done
+
   if command -v apt-get &> /dev/null; then
-    sudo apt update && sudo apt upgrade &> /dev/null &
+    sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
   elif command -v dnf &> /dev/null; then
     sudo dnf check-update && sudo dnf upgrade
   elif command -v yum &> /dev/null; then
