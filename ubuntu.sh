@@ -193,7 +193,6 @@ disable_services () {
   _print "g" "Finished disabling services"
 }
 
-
 # Check open ports
 port_viewer () {
   bad_ports=(21 22 23 25 53 80 443 3306 5432 6379 5900 8080 2049 135 445 3389)
@@ -207,7 +206,6 @@ port_viewer () {
   done
 }
 
-
 # Update password complexity
 set_password_complexity () {
   # Copy password file from somewhere...
@@ -217,6 +215,7 @@ set_password_complexity () {
   echo "$password_enforcement_raw_contents" | tee login.defs &> /dev/null
 }
 
+# Updates all users passwords to meet complexity requirements
 update_all_user_passwords () {
 	# Hash = Cyb3rP@tri0t18
 	hash='$6$.z7SjTXCuV.jcxp/$J80m2lGxxn6h6gKwE8aroWG10q4xPtmg7LGH2RORrlctT8s8Ma4jiwfSUi.Ox22YAKCAC7ii8tWkaDgzKXBQm/'
@@ -227,6 +226,7 @@ update_all_user_passwords () {
 	done
 }
 
+# Enable UFW and review open ports (install if not)
 enable_firewall () {
   # Install UFW if missing
   if ! command -v ufw &>/dev/null; then
@@ -293,6 +293,30 @@ enable_firewall () {
   _print g "UFW port management complete."
 }
 
+# PAM file overwrite
+pam_management () {
+  # Ensure libpam-runtime and pam-auth-update exist
+  if ! command -v pam-auth-update &>/dev/null; then
+    sudo apt-get update -y && sudo apt-get install -y libpam-runtime
+  fi
+
+  # Backup current PAM config (just in case)
+  backup_dir="$PWD/pam-backups-$(date +%Y%m%d-%H%M%S)"
+  mkdir -p "$backup_dir"
+  sudo cp /etc/pam.d/common-* "$backup_dir"/ || true
+
+  # Run pam-auth-update non-interactively
+  sudo pam-auth-update --force --package
+
+  # Verify output files exist and are readable
+  for f in /etc/pam.d/common-*; do
+    if ! sudo grep -q "pam_unix.so" "$f"; then
+      _print "y" "Warning: $f may be invalid — no pam_unix.so line found!"
+    fi
+  done
+  _print "g" "PAM configuration successfully regenerated!"
+}
+
 # Finds the correct package manager and run updates
 run_updates () {
   if command -v apt-get &> /dev/null; then
@@ -310,6 +334,8 @@ run_updates () {
 delete_extra_users $1
 delete_bad_tools
 disable_services
+enable_firewall
+pam_management
 set_password_complexity
 update_all_user_passwords $1
 remove_unauthorized_admin $1
