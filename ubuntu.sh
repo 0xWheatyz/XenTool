@@ -219,9 +219,14 @@ set_password_complexity () {
 update_all_user_passwords () {
 	# Hash = Cyb3rP@tri0t18
 	hash='$6$.z7SjTXCuV.jcxp/$J80m2lGxxn6h6gKwE8aroWG10q4xPtmg7LGH2RORrlctT8s8Ma4jiwfSUi.Ox22YAKCAC7ii8tWkaDgzKXBQm/'
-	users=$( cat $1 | cut -d";" -f1 )
-	for user in "${users[@]}"
-	do
+	# Get string of users
+  users=$( cat $1 | cut -d";" -f1 )
+  # Turn string into array
+  list_users=()
+	for user in "${users}"; do list_users+=($user); done
+	# Loop through array, changing passwords
+  for user in "${list_users[@]}"
+  do
 		sudo usermod -p "$hash" "$user"
 	done
 }
