@@ -5,6 +5,8 @@ set +e
 # Every destructive function appends to this list upon completing one action
 log=()
 
+debug_log=()
+
 ## Helper function to check that string is in array
 # Usage: _contains_element "string" "${array[@]}"
 # Returns: 0 if exists, 1 if not found
@@ -22,22 +24,25 @@ _print () {
   case "$color" in 
     r)
       echo -e "[\e[31m-\e[0m] $text"
+      debug_log+=("${text}")
       ;;
     y)
       echo -e "[\e[33m!\e[0m] $text"
+      debug_log+=("${text}")
       ;;
     g) 
       echo -e "[\e[32m+\e[0m] $text"
       ;;
     *)
-      echo "invaild color"
+      echo "[invaild color] $text"
       ;;
     esac
 }
 
 ## Write log to text file
 _write_log () {
-  echo $log | tee script.log
+  for item in "${log[@]}"; do echo "$item"; done > script.log
+  for item in "${debug_log[@]}"; do echo "$item"; done > debug.log
 }
 
 # Get all users with a login shell
@@ -74,7 +79,7 @@ delete_extra_users () {
       echo
       if [[ $ans == n ]]; then true
       else
-        log+=("Removed user => $user")
+        log+=("Removed user => ${user}")
         sudo -S userdel $system_user
       fi
     fi
@@ -110,7 +115,7 @@ remove_unauthorized_admin () {
       echo ""
       if [[ $ans == n ]]; then true
       else
-        log+=("Removed user => $user (wheel group)")
+        log+=("Removed user => ${user} (wheel group)")
         sudo -S userdel $user
       fi
     fi
@@ -134,7 +139,7 @@ remove_unauthorized_admin () {
       echo ""
       if [[ $ans == n ]]; then true
       else
-        log+=("Removed user => $user (sudoers file)")
+        log+=("Removed user => ${user} (sudoers file)")
         #Use SED to match lines starting with $user, them comment out those lines
         sudo sed -i -e "/$user/s/^/#/" /etc/sudoers
       fi
@@ -159,8 +164,8 @@ delete_bad_tools () {
       echo ""
       if [[ $ans == n ]]; then true
       else
-        log+=("Removed app => $app")
-        sudo -S apt remove "$app*" -y &> /dev/null
+        log+=("Removed app => ${app}")
+        sudo -S apt remove "${app}*" -y &> /dev/null
       fi 
     fi 
   done
@@ -322,6 +327,97 @@ pam_management () {
   _print "g" "PAM configuration successfully regenerated!"
 }
 
+# List cronjobs
+list_cronjobs() {
+  local keywords=("python" "curl" "wget" "bash" "nc" "socat" "rev" "ssh" "exec" "tmp" "socket" "miner" "coin" "crypto" "chmod" "chown" "scp" "ftp" "tunnel")
+
+  local safe_commands=("run-parts" "anacron" "apt" "dpkg" "updatedb" "logrotate" "certbot")
+  local all_users
+  local found_jobs=false
+
+  _print y "Scanning system-wide cron definitions..."
+
+  # Collect real users
+  all_users=$(awk -F: '{ if ($7 !~ /(false|nologin)/) print $1 }' /etc/passwd)
+
+  # --- System Crontabs ---
+  for sys_cron in /etc/crontab /etc/cron.d/*; do
+    [[ ! -f "$sys_cron" ]] && continue
+
+    while IFS= read -r line; do
+      [[ "$line" =~ ^#|^$ ]] && continue
+
+      local match=false
+      local safe=false
+
+      # Check for suspicious keywords
+      for keyword in "${keywords[@]}"; do
+        if grep -qi "$keyword" <<< "$line"; then
+          match=true
+          break
+        fi
+      done
+
+      # Check for safe known commands
+      for cmd in "${safe_commands[@]}"; do
+        if grep -q "$cmd" <<< "$line"; then
+          safe=true
+          break
+        fi
+      done
+
+      if $safe; then
+        _print g "$sys_cron → (safe) $line"
+      elif $match; then
+        _print r "$sys_cron → $line"
+        found_jobs=true
+      else
+        _print y "$sys_cron → $line"
+      fi
+    done < "$sys_cron"
+  done
+
+  # --- User Crontabs ---
+  for user in $all_users; do
+    local crontab_output
+    if crontab_output=$(sudo crontab -u "$user" -l 2>/dev/null); then
+      while IFS= read -r line; do
+        [[ "$line" =~ ^#|^$ ]] && continue
+
+        local match=false
+        local safe=false
+
+        for keyword in "${keywords[@]}"; do
+          if grep -qi "$keyword" <<< "$line"; then
+            match=true
+            break
+          fi
+        done
+
+        for cmd in "${safe_commands[@]}"; do
+          if grep -q "$cmd" <<< "$line"; then
+            safe=true
+            break
+          fi
+        done
+
+        if $safe; then
+          continue
+        elif $match; then
+          _print r "[$user] $line"
+          found_jobs=true
+        else
+          _print y "[$user] $line"
+        fi
+      done <<< "$crontab_output"
+    fi
+  done
+
+  if ! $found_jobs; then
+    _print g "No suspicious cronjobs detected."
+  fi
+}
+
 # Finds the correct package manager and run updates
 run_updates () {
   if command -v apt-get &> /dev/null; then
@@ -344,6 +440,6 @@ pam_management
 set_password_complexity
 update_all_user_passwords $1
 remove_unauthorized_admin $1
-_write_log
 port_viewer
 run_updates
+_write_log
