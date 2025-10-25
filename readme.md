@@ -14,10 +14,10 @@ A system hardening toolkit
 Super duper simple
 Single line usage
 ```bash
+curl -fsSL https://raw.githubusercontent.com/0xWheatyz/XenTool/refs/heads/main/ubuntu.sh | bash -s -- users.txt
+```
+ 
 
-```
-curl -fsSL https://raw.githubusercontent.com/0xWheatyz/XenTool/refs/heads/main/ubuntu.sh | bash -s -- users.txt 
-```
 ```
 git clone https://github.com/0xWheatyz/XenTool.git
 cd XenTool
