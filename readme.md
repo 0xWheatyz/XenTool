@@ -18,6 +18,7 @@ Single line usage
 ```
 curl -fsSL https://raw.githubusercontent.com/0xWheatyz/XenTool/refs/heads/main/ubuntu.sh | bash -s -- users.txt 
 ```
+```
 git clone https://github.com/0xWheatyz/XenTool.git
 cd XenTool
 chmod +x ubuntu.sh
