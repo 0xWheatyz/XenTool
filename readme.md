@@ -12,15 +12,17 @@ A system hardening toolkit
 ## Usage
 ---
 Super duper simple
+Single line usage
+```bash
+
+```
+curl -fsSL https://raw.githubusercontent.com/0xWheatyz/XenTool/refs/heads/main/ubuntu.sh | bash -s -- users.txt 
 ```
 git clone https://github.com/0xWheatyz/XenTool.git
 cd XenTool
 chmod +x ubuntu.sh
 ./ubuntu.sh users.txt
 ```
-or all as one,
-`git clone https://github.com/0xWheatyz/XenTool.git && cd XenTool &&chmod +x ubuntu.sh && ./ubuntu.sh users.txt`
-`users.txt` is a text file containing authorized user and their superuser status.
 
 #### Example users.txt file
 ```
