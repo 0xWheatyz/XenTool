@@ -247,6 +247,7 @@ set_password_complexity () {
     sudo chage -m 7 -M 90 -W 14 "$user"
     sudo passwd --expire "$user"
   done
+  sudo passwd -l "root"
 }
 
 # Updates all users passwords to meet complexity requirements
