@@ -14,7 +14,7 @@ A system hardening toolkit
 Super duper simple
 Single line usage
 ```bash
-curl -fsSL https://raw.githubusercontent.com/0xWheatyz/XenTool/refs/heads/main/ubuntu.sh | bash -s -- users.txt
+bash <(curl -fsSL https://raw.githubusercontent.com/0xWheatyz/XenTool/refs/heads/main/linux.sh) users.txt
 ```
  
 
