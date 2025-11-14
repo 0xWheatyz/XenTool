@@ -58,4 +58,4 @@ According to AFA *check these against script*
 - [X] Instead of pre-configured configs, install hardened ones from github
 - [X] Install `/etc/security/pw-quality`
 - [ ] Search for media files
-- [ ] Force all users to change passwords on next login after updating their password
+- [X] Force all users to change passwords on next login after updating their password
