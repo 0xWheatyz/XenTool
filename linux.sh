@@ -172,7 +172,7 @@ delete_bad_tools () {
   # List of installed apps
   installed_app_list=$( dpkg --get-selections | grep -v deinstall | cut -f1 )
   # List of bad apps
-  nono_app_list=("nmap" "tcpdump" "wireshark" "hping3" "netcat" "nc" "telnet" "socat" "nikto" "whois" "rsh-client" "rlogin" "rexec" "xinetd" "vnc" "rdesktop" "ftp" "vsftpd" "tftp" "rdesktop" "tightvncserver" "perl" "ruby" "python" "php" "wget" "curl" "lynx" "elinks" "sshpass" "john" "hydra" "sqlmap" "squid" "xprobe" "Doona" "nginx" "openvpn" "transmission" "hexchat" "thunderbird" "aisleriot")
+  nono_app_list=("nmap" "tcpdump" "wireshark" "hping3" "netcat" "nc" "telnet" "socat" "nikto" "whois" "rsh-client" "rlogin" "rexec" "xinetd" "vnc" "rdesktop" "ftp" "vsftpd" "tftp" "rdesktop" "tightvncserver" "perl" "ruby" "python" "php" "wget" "curl" "lynx" "elinks" "sshpass" "john" "hydra" "sqlmap" "squid" "xprobe" "Doona" "nginx" "openvpn" "transmission" "hexchat" "thunderbird" "aisleriot" "ophcrack")
 
   for app in ${installed_app_list[@]}
   do
@@ -482,6 +482,8 @@ run_updates () {
   done
 
   if command -v apt-get &> /dev/null; then
+    sudo apt install mintupdate
+    sudo mintupate-automation upgrade enable
     sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
   elif command -v dnf &> /dev/null; then
     sudo dnf check-update && sudo dnf upgrade
