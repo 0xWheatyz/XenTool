@@ -236,6 +236,14 @@ set_password_complexity () {
   _get_file "/etc/lightdm/lightdm.conf" "https://raw.githubusercontent.com/0xWheatyz/XenTool/refs/heads/main/defaults/lightdm.conf"
   _get_file "/etc/security/pwquality.conf" "https://raw.githubusercontent.com/0xWheatyz/XenTool/refs/heads/main/defaults/pwquality.conf"
   _get_file "/etc/login.defs" "https://raw.githubusercontent.com/0xWheatyz/XenTool/refs/heads/main/defaults/login.defs"
+  # After updating all files, update each user independently
+  users=$( cat $1 | cut -d";" -f1 )
+  list_users=()
+  for user in "${users}"; do list_users+=($user); done
+  for user in "${list_users[@]}"
+  do
+    sudo chage -m 7 -M 90 -W 14 "$user"
+  done
 }
 
 # Updates all users passwords to meet complexity requirements
