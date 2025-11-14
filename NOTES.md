@@ -51,11 +51,11 @@ According to AFA *check these against script*
 
 
 ## Improvements checklist
-- [ ] Get safe SSHD configs from github
+- [X] Get safe SSHD configs from github
 - [ ] Add ophcrack to malicous software list
 - [ ] Get list of users from readme automatically
 - [ ] Enable auto updates
-- [ ] Instead of pre-configured configs, install hardened ones from github
-- [ ] Install `/etc/security/pw-quality`
+- [X] Instead of pre-configured configs, install hardened ones from github
+- [X] Install `/etc/security/pw-quality`
 - [ ] Search for media files
 - [ ] Force all users to change passwords on next login after updating their password
