@@ -166,12 +166,11 @@ remove_unauthorized_admin () {
 }
 
 # Delete bad tools defined in nono_app_list
-# Finished BUT UNTESTED
 delete_bad_tools () {
   # List of installed apps
   installed_app_list=$( dpkg --get-selections | grep -v deinstall | cut -f1 )
   # List of bad apps
-  nono_app_list=("nmap" "tcpdump" "wireshark" "hping3" "netcat" "nc" "telnet" "socat" "nikto" "whois" "rsh-client" "rlogin" "rexec" "xinetd" "vnc" "rdesktop" "ftp" "vsftpd" "tftp" "rdesktop" "tightvncserver" "perl" "ruby" "python" "php" "wget" "curl" "lynx" "elinks" "sshpass" "john" "hydra" "sqlmap" "squid" "xprobe" "Doona" "nginx" "openvpn")
+  nono_app_list=("nmap" "tcpdump" "wireshark" "hping3" "netcat" "nc" "telnet" "socat" "nikto" "whois" "rsh-client" "rlogin" "rexec" "xinetd" "vnc" "rdesktop" "ftp" "vsftpd" "tftp" "rdesktop" "tightvncserver" "perl" "ruby" "python" "php" "wget" "curl" "lynx" "elinks" "sshpass" "john" "hydra" "sqlmap" "squid" "xprobe" "Doona" "nginx" "openvpn" "transmission" "hexchat" "thunderbird" "aisleriot")
 
   for app in ${installed_app_list[@]}
   do
@@ -183,7 +182,7 @@ delete_bad_tools () {
       if [[ $ans == n ]]; then true
       else
         log+=("Removed app => ${app}")
-        sudo -S apt remove "${app}*" -y &> /dev/null
+        sudo -S apt remove "*${app}*" -y &> /dev/null
       fi 
     fi 
   done
@@ -475,7 +474,7 @@ delete_bad_tools
 disable_services
 enable_firewall
 pam_management
-set_password_complexity
+set_password_complexity $1
 update_all_user_passwords $1
 remove_unauthorized_admin $1
 port_viewer
