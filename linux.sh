@@ -450,6 +450,22 @@ list_cronjobs() {
   fi
 }
 
+# Search all home directories for a list of unauthorized media
+remove_media () {
+  media = ( "jpeg" "png" "gif" "bmp" "webp" "svg+xml" "tiff" "mp4" "webm" "ogg" "quicktime" "x-msvideo" "x-flv" "3gpp" "mpeg" "ogg" "wav" "aac" "midi" "x-m4a" "x-aiff" )
+  for m in "${media[@]}"
+  do
+    mapfile -t bad_files < <(sudo find /home -name "*.$m")
+    if [ ${#bad_files[@]} -ne 0 ]; then
+      for file in "${bad_files}"; do
+        _print y "File found! $file"
+        sudo rm $file
+      done
+    fi
+  done
+}
+
+
 # Finds the correct package manager and run updates
 run_updates () {
   echo "Press any key to stop updates"
