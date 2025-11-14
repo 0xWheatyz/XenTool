@@ -260,6 +260,10 @@ update_all_user_passwords () {
 	done
 }
 
+sshd_configuration () {
+  _get_file "/etc/ssh/sshd_config" "https://raw.githubusercontent.com/0xWheatyz/XenTool/refs/heads/main/defaults/sshd_config"
+}
+
 # Enable UFW and review open ports (install if not)
 enable_firewall () {
   # Install UFW if missing
@@ -475,6 +479,7 @@ disable_services
 enable_firewall
 pam_management
 set_password_complexity $1
+sshd_configuration
 update_all_user_passwords $1
 remove_unauthorized_admin $1
 port_viewer
