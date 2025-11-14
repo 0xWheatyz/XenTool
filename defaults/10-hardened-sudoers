@@ -1,0 +1,3 @@
+# Hardened sudo configuration
+Defaults passwd_timeout=0
+Defaults use_pty
