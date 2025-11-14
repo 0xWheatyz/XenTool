@@ -232,6 +232,7 @@ port_viewer () {
 
 # Update password complexity
 set_password_complexity () {
+  sudo apt install libpam-pwquality
   _get_file "/etc/sudoers.d/10-hardened-sudoers" "https://raw.githubusercontent.com/0xWheatyz/XenTool/refs/heads/main/defaults/10-hardened-sudoers"
   _get_file "/etc/pam.d/common-password" "https://raw.githubusercontent.com/0xWheatyz/XenTool/refs/heads/main/defaults/common-password"
   _get_file "/etc/lightdm/lightdm.conf" "https://raw.githubusercontent.com/0xWheatyz/XenTool/refs/heads/main/defaults/lightdm.conf"
@@ -244,6 +245,7 @@ set_password_complexity () {
   for user in "${list_users[@]}"
   do
     sudo chage -m 7 -M 90 -W 14 "$user"
+    sudo passwd --expire "$user"
   done
 }
 
