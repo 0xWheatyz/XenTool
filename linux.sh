@@ -75,6 +75,8 @@ delete_extra_users () {
     clean_system_username_list+=($user)
   done
   
+  clean_system_username_list+=("root")
+
   ### GET USERS FROM FILE ###
   # Read file into string
   users=$( cat $1 )
@@ -86,7 +88,7 @@ delete_extra_users () {
     username=$( echo $user | cut -d";" -f1 )
     clean_file_username_list+=($username)
   done
-
+  clean_file_username_list+=("root")
   ### COMPARE LISTS LOOKING FOR UNAUTHORIZED USERS ###
   for system_user in ${clean_system_username_list[@]}
   do
@@ -114,7 +116,7 @@ remove_unauthorized_admin () {
   do
     proper_users+=($user)
   done
-
+  proper_users+=("root")
   ### REMOVE UNAUTHORIZED SUPERUSERS FROM WHEEL ###
   # Returns a list of users in the wheel group
   wheel_group_users_raw=$( getent group wheel | cut -d":" -f4 | tr "," "\n" )
@@ -123,7 +125,7 @@ remove_unauthorized_admin () {
   do 
     wheel_group_users+=($user)
   done
-
+  
   for user in ${wheel_group_users[@]}
   do
     if _contains_element "$user" "${proper_users[@]}"; then true
