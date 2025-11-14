@@ -45,6 +45,24 @@ _write_log () {
   for item in "${debug_log[@]}"; do echo "$item"; done > debug.log
 }
 
+# Pulls files from url as $2, saves as $1
+_get_file () {
+  mkdir -p ./backup
+  if [ -f "$1" ]
+  then
+    mv $1 ./backup
+  fi
+
+  sudo curl -o "$1" "$2"
+
+  if [ -f "$1" ]
+  then
+    return 0
+  else
+    return 1
+  fi
+}
+
 # Get all users with a login shell
 delete_extra_users () {
   ### GET SYSTEM USERS ###
@@ -213,53 +231,17 @@ port_viewer () {
 
 # Update password complexity
 set_password_complexity () {
-  local pam_file="/etc/pam.d/common-password"
-  local conf_file="/etc/security/pwquality.conf"
-  # Ensure pam_pwquality.so is referenced correctly in PAM
-  if ! grep -q "pam_pwquality.so" "$pam_file"; then
-    sudo sed -i '/^password\s\+requisite\s\+pam_deny.so/i password    requisite     pam_pwquality.so retry=3' "$pam_file"
-  else
-    _print "y" "pam_pwquality.so already present in PAM configuration."
-  fi
-  # Add password history enforcement
-  if ! grep -q "pam_unix.so.*remember=" "$pam_file"; then
-    sudo sed -i "/pam_pwquality.so/a password    [success=1 default=ignore]   pam_unix.so obscure sha512 remember=5" "$pam_file"
-  else
-    _print "y" "Password history enforcement already configured."
-  fi
-
-  # Configure /etc/security/pwquality.conf
-  sudo tee "$conf_file" >/dev/null <<'EOF'
-  # Password quality configuration
-
-# Minimum length of a new password
-minlen = 10
-
-# At least one upper, lower, digit, and special character
-minclass = 4
-
-# Maximum sequence of the same character
-maxrepeat = 2
-
-# Reject passwords containing the username
-usercheck = 1
-
-# Prevent use of old/common passwords
-dictcheck = 1
-
-# Reject simple patterns like 1234, qwerty, etc.
-gecoscheck = 1
-
-# Enforce retry attempts
-retry = 3
-EOF
+  _get_file "/etc/sudoers.d/10-hardened-sudoers" "https://raw.githubusercontent.com/0xWheatyz/XenTool/refs/heads/main/defaults/10-hardened-sudoers"
+  _get_file "/etc/pam.d/common-password" "https://raw.githubusercontent.com/0xWheatyz/XenTool/refs/heads/main/defaults/common-password"
+  _get_file "/etc/lightdm/lightdm.conf" "https://raw.githubusercontent.com/0xWheatyz/XenTool/refs/heads/main/defaults/lightdm.conf"
+  _get_file "/etc/security/pwquality.conf" "https://raw.githubusercontent.com/0xWheatyz/XenTool/refs/heads/main/defaults/pwquality.conf"
+  _get_file "/etc/login.defs" "https://raw.githubusercontent.com/0xWheatyz/XenTool/refs/heads/main/defaults/login.defs"
 }
 
 # Updates all users passwords to meet complexity requirements
 update_all_user_passwords () {
-	# Hash = Cyb3rP@tri0t18
-	hash='$6$.z7SjTXCuV.jcxp/$J80m2lGxxn6h6gKwE8aroWG10q4xPtmg7LGH2RORrlctT8s8Ma4jiwfSUi.Ox22YAKCAC7ii8tWkaDgzKXBQm/'
-	# Get string of users
+	password="Cyb3rP@tri0t18R0und2"
+  # Get string of users
   users=$( cat $1 | cut -d";" -f1 )
   # Turn string into array
   list_users=()
@@ -267,7 +249,7 @@ update_all_user_passwords () {
 	# Loop through array, changing passwords
   for user in "${list_users[@]}"
   do
-		sudo usermod -p "$hash" "$user"
+		echo "$user:$password" | sudo chpasswd 
 	done
 }
 
